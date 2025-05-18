@@ -5,30 +5,45 @@ import cors from 'cors';
 import bookRoute from './route/bookroute.js';
 import userRoute from './route/userroute.js';
 
-const app = express()
-app.use(cors());
-app.use(express.json());
+const app = express();
 dotenv.config();
-const PORT = process.env.PORT || 4000;
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:5173', // Your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+
+app.use(express.json());
+
+const PORT = process.env.PORT || 4001; // Changed to 4001 to match frontend
 const URI = process.env.MongoDBURI;
 
-
-//connect to mongodb
-try {
-  mongoose.connect(URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-  console.log("Connected to mongodb")
-
-} catch (error) {
-  console.log("Error:", error);
-
-}
-app.use("/book", bookRoute);
-app.use("/user",userRoute);
-
-
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}`)
+// Connect to MongoDB with better error handling
+mongoose.connect(URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 })
+  .then(() => {
+    console.log("Connected to MongoDB successfully");
+  })
+  .catch((error) => {
+    console.error("MongoDB connection error:", error);
+    process.exit(1); // Exit if cannot connect to database
+  });
+
+// Routes
+app.use("/book", bookRoute);
+app.use("/user", userRoute);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
